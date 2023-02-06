@@ -45,7 +45,9 @@ pub fn parse_nix_config_string(contents: String, origin: &Path) -> Result<NixCon
             line = &line[..pos];
         }
 
-        let tokens = line.split_ascii_whitespace().collect::<Vec<_>>();
+        let tokens = line
+            .split(|c| [' ', '\t', '\n', '\r'].contains(&c))
+            .collect::<Vec<_>>();
 
         if tokens.is_empty() {
             continue;
