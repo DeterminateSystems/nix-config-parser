@@ -1,6 +1,6 @@
 [package]
 name = "nix-config-parser"
-author = "Cole Helbling <cole.helbling@determinate.systems>"
+authors = ["Cole Helbling <cole.helbling@determinate.systems>"]
 version = "0.1.0"
 edition = "2021"
 
