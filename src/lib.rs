@@ -112,3 +112,90 @@ pub fn parse_nix_config_string(
 
     Ok(settings)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_config_from_string() {
+        let res = parse_nix_config_string(
+            "cores = 4242\nexperimental-features = flakes nix-command".into(),
+            None,
+        );
+
+        assert!(res.is_ok());
+
+        let map = res.unwrap();
+
+        assert_eq!(map.get("cores"), Some(&"4242".into()));
+        assert_eq!(
+            map.get("experimental-features"),
+            Some(&"flakes nix-command".into())
+        );
+    }
+
+    #[test]
+    fn parses_config_from_file() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let test_file = temp_dir
+            .path()
+            .join("recognizes_existing_different_files_and_fails_to_merge");
+
+        std::fs::write(
+            &test_file,
+            "cores = 4242\nexperimental-features = flakes nix-command",
+        )
+        .unwrap();
+
+        let res = parse_nix_config_file(&test_file);
+
+        assert!(res.is_ok());
+
+        let map = res.unwrap();
+
+        assert_eq!(map.get("cores"), Some(&"4242".into()));
+        assert_eq!(
+            map.get("experimental-features"),
+            Some(&"flakes nix-command".into())
+        );
+    }
+
+    #[test]
+    fn errors_on_invalid_config() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let test_file = temp_dir.path().join("does-not-exist");
+
+        match parse_nix_config_string("bad config".into(), None) {
+            Err(ParseError::IllegalConfiguration(_, _)) => (),
+            _ => assert!(
+                false,
+                "bad config should have returned ParseError::IllegalConfiguration"
+            ),
+        }
+
+        match parse_nix_config_file(&test_file) {
+            Err(ParseError::FileNotFound(path)) => assert_eq!(path, test_file),
+            _ => assert!(
+                false,
+                "nonexistent path should have returned ParseError::FileNotFound"
+            ),
+        }
+
+        match parse_nix_config_string(format!("include {}", test_file.display()), None) {
+            Err(ParseError::IncludedFileNotFound(path, _)) => assert_eq!(path, test_file),
+            _ => assert!(
+                false,
+                "nonexistent include path should have returned ParseError::IncludedFileNotFound"
+            ),
+        }
+
+        match parse_nix_config_file(&temp_dir.path()) {
+            Err(ParseError::FailedToReadFile(path, _)) => assert_eq!(path, temp_dir.path()),
+            _ => assert!(
+                false,
+                "trying to read a dir to a string should have returned ParseError::FailedToReadFile"
+            ),
+        }
+    }
+}
