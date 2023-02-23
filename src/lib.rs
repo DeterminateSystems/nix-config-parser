@@ -11,10 +11,10 @@ pub type NixConfig = HashMap<String, String>;
 pub enum ParseError {
     #[error("file '{0}' not found")]
     FileNotFound(PathBuf),
-    #[error("file '{0}' included from '{1}' not found")]
-    IncludedFileNotFound(PathBuf, PathBuf),
-    #[error("illegal configuration line '{0}' in '{1}'")]
-    IllegalConfiguration(String, PathBuf),
+    #[error("file '{0}' included from '{}' not found", .1.as_ref().map(|path| path.display().to_string()).unwrap_or(String::from("<unknown>")))]
+    IncludedFileNotFound(PathBuf, Option<PathBuf>),
+    #[error("illegal configuration line '{0}' in '{}'", .1.as_ref().map(|path| path.display().to_string()).unwrap_or(String::from("<unknown>")))]
+    IllegalConfiguration(String, Option<PathBuf>),
     #[error("failed to read contents of '{0}': {1}")]
     FailedToReadFile(PathBuf, #[source] std::io::Error),
 }
@@ -27,14 +27,17 @@ pub fn parse_nix_config_file(path: &Path) -> Result<NixConfig, ParseError> {
     let contents = std::fs::read_to_string(&path)
         .map_err(|e| ParseError::FailedToReadFile(path.to_owned(), e))?;
 
-    self::parse_nix_config_string(contents, path)
+    self::parse_nix_config_string(contents, Some(path))
 }
 
 // Mostly a carbon copy of AbstractConfig::applyConfig from Nix:
 // https://github.com/NixOS/nix/blob/0079d2943702a7a7fbdd88c0f9a5ad677c334aa8/src/libutil/config.cc#L80
 // Some things were adjusted to be more idiomatic, as well as to account for the lack of
 // `try { ... } catch (SpecificErrorType &) { }`
-pub fn parse_nix_config_string(contents: String, origin: &Path) -> Result<NixConfig, ParseError> {
+pub fn parse_nix_config_string(
+    contents: String,
+    origin: Option<&Path>,
+) -> Result<NixConfig, ParseError> {
     let mut settings = NixConfig::new();
 
     for line in contents.lines() {
@@ -58,7 +61,7 @@ pub fn parse_nix_config_string(contents: String, origin: &Path) -> Result<NixCon
         if tokens.len() < 2 {
             return Err(ParseError::IllegalConfiguration(
                 line.to_owned(),
-                origin.to_owned(),
+                origin.map(ToOwned::to_owned),
             ));
         }
 
@@ -75,7 +78,7 @@ pub fn parse_nix_config_string(contents: String, origin: &Path) -> Result<NixCon
             if tokens.len() != 2 {
                 return Err(ParseError::IllegalConfiguration(
                     line.to_owned(),
-                    origin.to_owned(),
+                    origin.map(ToOwned::to_owned),
                 ));
             }
 
@@ -86,7 +89,7 @@ pub fn parse_nix_config_string(contents: String, origin: &Path) -> Result<NixCon
                 Err(_) if !ignore_missing => {
                     return Err(ParseError::IncludedFileNotFound(
                         include_path,
-                        origin.to_owned(),
+                        origin.map(ToOwned::to_owned),
                     ));
                 }
                 _ => unreachable!(),
@@ -98,7 +101,7 @@ pub fn parse_nix_config_string(contents: String, origin: &Path) -> Result<NixCon
         if tokens[1] != "=" {
             return Err(ParseError::IllegalConfiguration(
                 line.to_owned(),
-                origin.to_owned(),
+                origin.map(ToOwned::to_owned),
             ));
         }
 
