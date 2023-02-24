@@ -12,7 +12,7 @@ fn main() {
     let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)
         .expect("failed to parse nix config string");
     assert_eq!(
-        nix_conf.get("experimental-features").unwrap(),
+        nix_conf.0.get("experimental-features").unwrap(),
         "flakes nix-command"
     );
 
@@ -24,10 +24,10 @@ fn main() {
     let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))
         .expect("failed to parse nix config file");
     assert_eq!(
-        nix_conf.get("experimental-features").unwrap(),
+        nix_conf.0.get("experimental-features").unwrap(),
         "flakes nix-command"
     );
-    assert_eq!(nix_conf.get("warn-dirty").unwrap(), "false");
+    assert_eq!(nix_conf.0.get("warn-dirty").unwrap(), "false");
     std::fs::remove_file("nix.conf").expect("failed to remove ./nix.conf");
 }
 ```
