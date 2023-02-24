@@ -1,12 +1,12 @@
 [package]
 name = "nix-config-parser"
-authors = ["Cole Helbling <cole.helbling@determinate.systems>"]
+description = "A simple parser for the Nix configuration file format"
 version = "0.1.0"
 edition = "2021"
-
-[lib]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+resolver = "2"
+license = "LGPL-2.1"
+repository = "https://github.com/DeterminateSystems/nix-config-parser"
+documentation = "https://docs.rs/nix-config-parser/latest/nix_config_parser"
 
 [dependencies]
 thiserror = "1.0.38"
