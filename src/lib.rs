@@ -8,8 +8,14 @@ use thiserror::Error;
 /// A newtype wrapper around a [`HashMap`], where the key is the name of the Nix
 /// setting, and the value is the value of that setting. If the setting accepts
 /// a list of values, the value will be space delimited.
-#[derive(Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct NixConfig(pub HashMap<String, String>);
+
+impl NixConfig {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+}
 
 /// An error that occurred while attempting to parse a `nix.conf` [`Path`] or
 /// [`String`].
@@ -28,19 +34,25 @@ pub enum ParseError {
 /// Attempt to parse the `nix.conf` at the provided path.
 ///
 /// ```rust
+/// # use std::error::Error;
+/// #
+/// # fn main() -> Result<(), Box<dyn Error>> {
 /// std::fs::write(
 ///     "nix.conf",
 ///     b"experimental-features = flakes nix-command\nwarn-dirty = false\n",
-/// )
-/// .expect("failed to write to ./nix.conf");
-/// let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))
-///     .expect("failed to parse nix config file");
+/// )?;
+///
+/// let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))?;
+///
 /// assert_eq!(
 ///     nix_conf.0.get("experimental-features").unwrap(),
 ///     "flakes nix-command"
 /// );
 /// assert_eq!(nix_conf.0.get("warn-dirty").unwrap(), "false");
-/// std::fs::remove_file("nix.conf").expect("failed to remove ./nix.conf");
+///
+/// std::fs::remove_file("nix.conf")?;
+/// # Ok(())
+/// # }
 /// ```
 pub fn parse_nix_config_file(path: &Path) -> Result<NixConfig, ParseError> {
     if !path.exists() {
@@ -57,13 +69,18 @@ pub fn parse_nix_config_file(path: &Path) -> Result<NixConfig, ParseError> {
 /// parameter is [`Option`]al, and only influences potential error messages.
 ///
 /// ```rust
+/// # use std::error::Error;
+/// #
+/// # fn main() -> Result<(), Box<dyn Error>> {
 /// let nix_conf_string = String::from("experimental-features = flakes nix-command");
-/// let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)
-///     .expect("failed to parse nix config string");
+/// let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)?;
+///
 /// assert_eq!(
 ///     nix_conf.0.get("experimental-features").unwrap(),
 ///     "flakes nix-command"
 /// );
+/// # Ok(())
+/// # }
 /// ```
 // Mostly a carbon copy of AbstractConfig::applyConfig from Nix:
 // https://github.com/NixOS/nix/blob/0079d2943702a7a7fbdd88c0f9a5ad677c334aa8/src/libutil/config.cc#L80
@@ -73,7 +90,7 @@ pub fn parse_nix_config_string(
     contents: String,
     origin: Option<&Path>,
 ) -> Result<NixConfig, ParseError> {
-    let mut settings = NixConfig(HashMap::new());
+    let mut settings = NixConfig::new();
 
     for line in contents.lines() {
         let mut line = line;
