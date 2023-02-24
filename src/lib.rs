@@ -20,6 +20,17 @@ impl std::fmt::Display for NixConfigKey {
     }
 }
 
+impl From<&str> for NixConfigKey {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+impl From<String> for NixConfigKey {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
 /// A newtype wrapper around a [`String`] that represents a `nix.conf` setting
 /// value.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -29,6 +40,17 @@ pub struct NixConfigValue(pub String);
 impl std::fmt::Display for NixConfigValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0)
+    }
+}
+
+impl From<&str> for NixConfigValue {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+impl From<String> for NixConfigValue {
+    fn from(value: String) -> Self {
+        Self(value)
     }
 }
 
