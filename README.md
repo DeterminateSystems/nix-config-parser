@@ -6,28 +6,45 @@ Based off of https://github.com/NixOS/nix/blob/0079d2943702a7a7fbdd88c0f9a5ad677
 
 ## Usage
 
+### Read from a file
+
 ```rust
-fn main() {
-    let nix_conf_string = String::from("experimental-features = flakes nix-command");
-    let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)
-        .expect("failed to parse nix config string");
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    std::fs::write(
+       "nix.conf",
+       b"experimental-features = flakes nix-command\nwarn-dirty = false\n",
+    )?;
+
+    let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))?;
+
     assert_eq!(
-        nix_conf.0.get("experimental-features").unwrap(),
-        "flakes nix-command"
+       nix_conf.settings().get(&"experimental-features".into()).unwrap(),
+       &"flakes nix-command".into()
+    );
+    assert_eq!(nix_conf.settings().get(&"warn-dirty".into()).unwrap(), &"false".into());
+
+    std::fs::remove_file("nix.conf")?;
+
+    Ok(())
+}
+```
+
+### Read from a string
+
+```rust
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let nix_conf_string = String::from("experimental-features = flakes nix-command");
+    let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)?;
+
+    assert_eq!(
+        nix_conf.settings().get(&"experimental-features".into()).unwrap(),
+        &"flakes nix-command".into()
     );
 
-    std::fs::write(
-        "nix.conf",
-        b"experimental-features = flakes nix-command\nwarn-dirty = false\n",
-    )
-    .expect("failed to write to ./nix.conf");
-    let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))
-        .expect("failed to parse nix config file");
-    assert_eq!(
-        nix_conf.0.get("experimental-features").unwrap(),
-        "flakes nix-command"
-    );
-    assert_eq!(nix_conf.0.get("warn-dirty").unwrap(), "false");
-    std::fs::remove_file("nix.conf").expect("failed to remove ./nix.conf");
+    Ok(())
 }
 ```
