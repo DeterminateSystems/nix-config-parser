@@ -5,8 +5,14 @@ use std::{
 
 use thiserror::Error;
 
-pub type NixConfig = HashMap<String, String>;
+/// A newtype wrapper around a [`HashMap`], where the key is the name of the Nix
+/// setting, and the value is the value of that setting. If the setting accepts
+/// a list of values, the value will be space delimited.
+#[derive(Debug)]
+pub struct NixConfig(pub HashMap<String, String>);
 
+/// An error that occurred while attempting to parse a `nix.conf` [`Path`] or
+/// [`String`].
 #[derive(Debug, Error)]
 pub enum ParseError {
     #[error("file '{0}' not found")]
@@ -19,6 +25,23 @@ pub enum ParseError {
     FailedToReadFile(PathBuf, #[source] std::io::Error),
 }
 
+/// Attempt to parse the `nix.conf` at the provided path.
+///
+/// ```rust
+/// std::fs::write(
+///     "nix.conf",
+///     b"experimental-features = flakes nix-command\nwarn-dirty = false\n",
+/// )
+/// .expect("failed to write to ./nix.conf");
+/// let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))
+///     .expect("failed to parse nix config file");
+/// assert_eq!(
+///     nix_conf.0.get("experimental-features").unwrap(),
+///     "flakes nix-command"
+/// );
+/// assert_eq!(nix_conf.0.get("warn-dirty").unwrap(), "false");
+/// std::fs::remove_file("nix.conf").expect("failed to remove ./nix.conf");
+/// ```
 pub fn parse_nix_config_file(path: &Path) -> Result<NixConfig, ParseError> {
     if !path.exists() {
         return Err(ParseError::FileNotFound(path.to_owned()));
@@ -30,6 +53,18 @@ pub fn parse_nix_config_file(path: &Path) -> Result<NixConfig, ParseError> {
     self::parse_nix_config_string(contents, Some(path))
 }
 
+/// Attempt to parse the `nix.conf` out of the provided [`String`]. The `origin`
+/// parameter is [`Option`]al, and only influences potential error messages.
+///
+/// ```rust
+/// let nix_conf_string = String::from("experimental-features = flakes nix-command");
+/// let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)
+///     .expect("failed to parse nix config string");
+/// assert_eq!(
+///     nix_conf.0.get("experimental-features").unwrap(),
+///     "flakes nix-command"
+/// );
+/// ```
 // Mostly a carbon copy of AbstractConfig::applyConfig from Nix:
 // https://github.com/NixOS/nix/blob/0079d2943702a7a7fbdd88c0f9a5ad677c334aa8/src/libutil/config.cc#L80
 // Some things were adjusted to be more idiomatic, as well as to account for the lack of
@@ -38,7 +73,7 @@ pub fn parse_nix_config_string(
     contents: String,
     origin: Option<&Path>,
 ) -> Result<NixConfig, ParseError> {
-    let mut settings = NixConfig::new();
+    let mut settings = NixConfig(HashMap::new());
 
     for line in contents.lines() {
         let mut line = line;
@@ -84,7 +119,7 @@ pub fn parse_nix_config_string(
 
             let include_path = PathBuf::from(tokens[1]);
             match self::parse_nix_config_file(&include_path) {
-                Ok(conf) => settings.extend(conf),
+                Ok(conf) => settings.0.extend(conf.0),
                 Err(_) if ignore_missing => {}
                 Err(_) if !ignore_missing => {
                     return Err(ParseError::IncludedFileNotFound(
@@ -107,7 +142,7 @@ pub fn parse_nix_config_string(
 
         let name = tokens[0];
         let value = tokens[2..].join(" ");
-        settings.insert(name.to_string(), value);
+        settings.0.insert(name.to_string(), value);
     }
 
     Ok(settings)
@@ -128,9 +163,9 @@ mod tests {
 
         let map = res.unwrap();
 
-        assert_eq!(map.get("cores"), Some(&"4242".into()));
+        assert_eq!(map.0.get("cores"), Some(&"4242".into()));
         assert_eq!(
-            map.get("experimental-features"),
+            map.0.get("experimental-features"),
             Some(&"flakes nix-command".into())
         );
     }
@@ -154,9 +189,9 @@ mod tests {
 
         let map = res.unwrap();
 
-        assert_eq!(map.get("cores"), Some(&"4242".into()));
+        assert_eq!(map.0.get("cores"), Some(&"4242".into()));
         assert_eq!(
-            map.get("experimental-features"),
+            map.0.get("experimental-features"),
             Some(&"flakes nix-command".into())
         );
     }
