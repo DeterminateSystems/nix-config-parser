@@ -1,3 +1,6 @@
+//! # nix-config-parser
+//!
+//! A simple parser for the Nix configuration file format.
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -8,22 +11,57 @@ use thiserror::Error;
 /// A newtype wrapper around a [`String`] that represents a `nix.conf` setting
 /// key.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NixConfigKey(pub String);
+
+impl std::fmt::Display for NixConfigKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 
 /// A newtype wrapper around a [`String`] that represents a `nix.conf` setting
 /// value.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NixConfigValue(pub String);
+
+impl std::fmt::Display for NixConfigValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 
 /// A newtype wrapper around a [`HashMap`], where the key is the name of the Nix
 /// setting, and the value is the value of that setting. If the setting accepts
 /// a list of values, the value will be space delimited.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct NixConfig(pub HashMap<NixConfigKey, NixConfigValue>);
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct NixConfig {
+    settings: HashMap<NixConfigKey, NixConfigValue>,
+}
 
 impl NixConfig {
     pub fn new() -> Self {
-        Self(HashMap::new())
+        Self {
+            settings: HashMap::new(),
+        }
+    }
+
+    pub fn settings(&self) -> &HashMap<NixConfigKey, NixConfigValue> {
+        &self.settings
+    }
+
+    pub fn settings_mut(&mut self) -> &mut HashMap<NixConfigKey, NixConfigValue> {
+        &mut self.settings
+    }
+
+    pub fn to_settings(&self) -> HashMap<NixConfigKey, NixConfigValue> {
+        self.settings.clone()
+    }
+
+    pub fn into_settings(self) -> HashMap<NixConfigKey, NixConfigValue> {
+        self.settings
     }
 }
 
@@ -55,10 +93,10 @@ pub enum ParseError {
 /// let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))?;
 ///
 /// assert_eq!(
-///     nix_conf.0.get("experimental-features").unwrap(),
-///     "flakes nix-command"
+///     nix_conf.settings().get(&"experimental-features".into()).unwrap(),
+///     &"flakes nix-command".into()
 /// );
-/// assert_eq!(nix_conf.0.get("warn-dirty").unwrap(), "false");
+/// assert_eq!(nix_conf.settings().get(&"warn-dirty".into()).unwrap(), &"false".into());
 ///
 /// std::fs::remove_file("nix.conf")?;
 /// # Ok(())
@@ -86,8 +124,8 @@ pub fn parse_nix_config_file(path: &Path) -> Result<NixConfig, ParseError> {
 /// let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)?;
 ///
 /// assert_eq!(
-///     nix_conf.0.get("experimental-features").unwrap(),
-///     "flakes nix-command"
+///     nix_conf.settings().get(&"experimental-features".into()).unwrap(),
+///     &"flakes nix-command".into()
 /// );
 /// # Ok(())
 /// # }
@@ -146,7 +184,7 @@ pub fn parse_nix_config_string(
 
             let include_path = PathBuf::from(tokens[1]);
             match self::parse_nix_config_file(&include_path) {
-                Ok(conf) => settings.0.extend(conf.0),
+                Ok(conf) => settings.settings_mut().extend(conf.into_settings()),
                 Err(_) if ignore_missing => {}
                 Err(_) if !ignore_missing => {
                     return Err(ParseError::IncludedFileNotFound(
@@ -170,7 +208,7 @@ pub fn parse_nix_config_string(
         let name = tokens[0];
         let value = tokens[2..].join(" ");
         settings
-            .0
+            .settings_mut()
             .insert(NixConfigKey(name.to_string()), NixConfigValue(value));
     }
 
@@ -192,14 +230,10 @@ mod tests {
 
         let map = res.unwrap();
 
+        assert_eq!(map.to_settings().get(&"cores".into()), Some(&"4242".into()));
         assert_eq!(
-            map.0.get(&NixConfigKey("cores".to_string())),
-            Some(&NixConfigValue("4242".to_string()))
-        );
-        assert_eq!(
-            map.0
-                .get(&NixConfigKey("experimental-features".to_string())),
-            Some(&NixConfigValue("flakes nix-command".to_string()))
+            map.settings().get(&"experimental-features".into()),
+            Some(&"flakes nix-command".into())
         );
     }
 
@@ -223,11 +257,11 @@ mod tests {
         let map = res.unwrap();
 
         assert_eq!(
-            map.0.get(&NixConfigKey("cores".to_string())),
+            map.settings().get(&NixConfigKey("cores".to_string())),
             Some(&NixConfigValue("4242".to_string()))
         );
         assert_eq!(
-            map.0
+            map.settings()
                 .get(&NixConfigKey("experimental-features".to_string())),
             Some(&NixConfigValue("flakes nix-command".to_string()))
         );
