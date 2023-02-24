@@ -5,11 +5,21 @@ use std::{
 
 use thiserror::Error;
 
+/// A newtype wrapper around a [`String`] that represents a `nix.conf` setting
+/// key.
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+pub struct NixConfigKey(pub String);
+
+/// A newtype wrapper around a [`String`] that represents a `nix.conf` setting
+/// value.
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+pub struct NixConfigValue(pub String);
+
 /// A newtype wrapper around a [`HashMap`], where the key is the name of the Nix
 /// setting, and the value is the value of that setting. If the setting accepts
 /// a list of values, the value will be space delimited.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct NixConfig(pub HashMap<String, String>);
+pub struct NixConfig(pub HashMap<NixConfigKey, NixConfigValue>);
 
 impl NixConfig {
     pub fn new() -> Self {
@@ -159,7 +169,9 @@ pub fn parse_nix_config_string(
 
         let name = tokens[0];
         let value = tokens[2..].join(" ");
-        settings.0.insert(name.to_string(), value);
+        settings
+            .0
+            .insert(NixConfigKey(name.to_string()), NixConfigValue(value));
     }
 
     Ok(settings)
@@ -180,10 +192,14 @@ mod tests {
 
         let map = res.unwrap();
 
-        assert_eq!(map.0.get("cores"), Some(&"4242".into()));
         assert_eq!(
-            map.0.get("experimental-features"),
-            Some(&"flakes nix-command".into())
+            map.0.get(&NixConfigKey("cores".to_string())),
+            Some(&NixConfigValue("4242".to_string()))
+        );
+        assert_eq!(
+            map.0
+                .get(&NixConfigKey("experimental-features".to_string())),
+            Some(&NixConfigValue("flakes nix-command".to_string()))
         );
     }
 
@@ -206,10 +222,14 @@ mod tests {
 
         let map = res.unwrap();
 
-        assert_eq!(map.0.get("cores"), Some(&"4242".into()));
         assert_eq!(
-            map.0.get("experimental-features"),
-            Some(&"flakes nix-command".into())
+            map.0.get(&NixConfigKey("cores".to_string())),
+            Some(&NixConfigValue("4242".to_string()))
+        );
+        assert_eq!(
+            map.0
+                .get(&NixConfigKey("experimental-features".to_string())),
+            Some(&NixConfigValue("flakes nix-command".to_string()))
         );
     }
 
