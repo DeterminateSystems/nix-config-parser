@@ -47,7 +47,7 @@ pub fn parse_nix_config_file(path: &Path) -> Result<NixConfig, ParseError> {
         return Err(ParseError::FileNotFound(path.to_owned()));
     }
 
-    let contents = std::fs::read_to_string(&path)
+    let contents = std::fs::read_to_string(path)
         .map_err(|e| ParseError::FailedToReadFile(path.to_owned(), e))?;
 
     self::parse_nix_config_string(contents, Some(path))
@@ -225,7 +225,7 @@ mod tests {
             ),
         }
 
-        match parse_nix_config_file(&temp_dir.path()) {
+        match parse_nix_config_file(temp_dir.path()) {
             Err(ParseError::FailedToReadFile(path, _)) => assert_eq!(path, temp_dir.path()),
             _ => assert!(
                 false,
