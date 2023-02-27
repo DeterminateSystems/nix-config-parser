@@ -230,9 +230,7 @@ pub fn parse_nix_config_string(
 
         let name = tokens[0];
         let value = tokens[2..].join(" ");
-        settings
-            .settings_mut()
-            .insert(NixConfigKey(name.to_string()), NixConfigValue(value));
+        settings.settings_mut().insert(name.into(), value.into());
     }
 
     Ok(settings)
@@ -279,14 +277,10 @@ mod tests {
 
         let map = res.unwrap();
 
+        assert_eq!(map.settings().get(&"cores".into()), Some(&"4242".into()));
         assert_eq!(
-            map.settings().get(&NixConfigKey("cores".to_string())),
-            Some(&NixConfigValue("4242".to_string()))
-        );
-        assert_eq!(
-            map.settings()
-                .get(&NixConfigKey("experimental-features".to_string())),
-            Some(&NixConfigValue("flakes nix-command".to_string()))
+            map.settings().get(&"experimental-features".into()),
+            Some(&"flakes nix-command".into())
         );
     }
 
