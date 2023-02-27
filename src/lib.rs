@@ -86,6 +86,137 @@ impl NixConfig {
     pub fn into_settings(self) -> HashMap<NixConfigKey, NixConfigValue> {
         self.settings
     }
+
+    /// Attempt to parse the `nix.conf` at the provided path.
+    ///
+    /// ```rust
+    /// # use std::error::Error;
+    /// #
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// std::fs::write(
+    ///     "nix.conf",
+    ///     b"experimental-features = flakes nix-command\nwarn-dirty = false\n",
+    /// )?;
+    ///
+    /// let nix_conf = nix_config_parser::NixConfig::parse_file(&std::path::Path::new("nix.conf"))?;
+    ///
+    /// assert_eq!(
+    ///     nix_conf.settings().get(&"experimental-features".into()).unwrap(),
+    ///     &"flakes nix-command".into()
+    /// );
+    /// assert_eq!(nix_conf.settings().get(&"warn-dirty".into()).unwrap(), &"false".into());
+    ///
+    /// std::fs::remove_file("nix.conf")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn parse_file(path: &Path) -> Result<NixConfig, ParseError> {
+        if !path.exists() {
+            return Err(ParseError::FileNotFound(path.to_owned()));
+        }
+
+        let contents = std::fs::read_to_string(path)
+            .map_err(|e| ParseError::FailedToReadFile(path.to_owned(), e))?;
+
+        Self::parse_string(contents, Some(path))
+    }
+
+    /// Attempt to parse the `nix.conf` out of the provided [`String`]. The `origin`
+    /// parameter is [`Option`]al, and only influences potential error messages.
+    ///
+    /// ```rust
+    /// # use std::error::Error;
+    /// #
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// let nix_conf_string = String::from("experimental-features = flakes nix-command");
+    /// let nix_conf = nix_config_parser::NixConfig::parse_string(nix_conf_string, None)?;
+    ///
+    /// assert_eq!(
+    ///     nix_conf.settings().get(&"experimental-features".into()).unwrap(),
+    ///     &"flakes nix-command".into()
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
+    // Mostly a carbon copy of AbstractConfig::applyConfig from Nix:
+    // https://github.com/NixOS/nix/blob/0079d2943702a7a7fbdd88c0f9a5ad677c334aa8/src/libutil/config.cc#L80
+    // Some things were adjusted to be more idiomatic, as well as to account for the lack of
+    // `try { ... } catch (SpecificErrorType &) { }`
+    pub fn parse_string(contents: String, origin: Option<&Path>) -> Result<NixConfig, ParseError> {
+        let mut settings = NixConfig::new();
+
+        for line in contents.lines() {
+            let mut line = line;
+
+            // skip comments
+            if let Some(pos) = line.find('#') {
+                line = &line[..pos];
+            }
+
+            if line.is_empty() {
+                continue;
+            }
+
+            let tokens = line.split(&[' ', '\t', '\n', '\r']).collect::<Vec<_>>();
+
+            if tokens.is_empty() {
+                continue;
+            }
+
+            if tokens.len() < 2 {
+                return Err(ParseError::IllegalConfiguration(
+                    line.to_owned(),
+                    origin.map(ToOwned::to_owned),
+                ));
+            }
+
+            let mut include = false;
+            let mut ignore_missing = false;
+            if tokens[0] == "include" {
+                include = true;
+            } else if tokens[0] == "!include" {
+                include = true;
+                ignore_missing = true;
+            }
+
+            if include {
+                if tokens.len() != 2 {
+                    return Err(ParseError::IllegalConfiguration(
+                        line.to_owned(),
+                        origin.map(ToOwned::to_owned),
+                    ));
+                }
+
+                let include_path = PathBuf::from(tokens[1]);
+                match Self::parse_file(&include_path) {
+                    Ok(conf) => settings.settings_mut().extend(conf.into_settings()),
+                    Err(_) if ignore_missing => {}
+                    Err(_) if !ignore_missing => {
+                        return Err(ParseError::IncludedFileNotFound(
+                            include_path,
+                            origin.map(ToOwned::to_owned),
+                        ));
+                    }
+                    _ => unreachable!(),
+                }
+
+                continue;
+            }
+
+            if tokens[1] != "=" {
+                return Err(ParseError::IllegalConfiguration(
+                    line.to_owned(),
+                    origin.map(ToOwned::to_owned),
+                ));
+            }
+
+            let name = tokens[0];
+            let value = tokens[2..].join(" ");
+            settings.settings_mut().insert(name.into(), value.into());
+        }
+
+        Ok(settings)
+    }
 }
 
 /// An error that occurred while attempting to parse a `nix.conf` [`Path`] or
@@ -102,147 +233,13 @@ pub enum ParseError {
     FailedToReadFile(PathBuf, #[source] std::io::Error),
 }
 
-/// Attempt to parse the `nix.conf` at the provided path.
-///
-/// ```rust
-/// # use std::error::Error;
-/// #
-/// # fn main() -> Result<(), Box<dyn Error>> {
-/// std::fs::write(
-///     "nix.conf",
-///     b"experimental-features = flakes nix-command\nwarn-dirty = false\n",
-/// )?;
-///
-/// let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))?;
-///
-/// assert_eq!(
-///     nix_conf.settings().get(&"experimental-features".into()).unwrap(),
-///     &"flakes nix-command".into()
-/// );
-/// assert_eq!(nix_conf.settings().get(&"warn-dirty".into()).unwrap(), &"false".into());
-///
-/// std::fs::remove_file("nix.conf")?;
-/// # Ok(())
-/// # }
-/// ```
-pub fn parse_nix_config_file(path: &Path) -> Result<NixConfig, ParseError> {
-    if !path.exists() {
-        return Err(ParseError::FileNotFound(path.to_owned()));
-    }
-
-    let contents = std::fs::read_to_string(path)
-        .map_err(|e| ParseError::FailedToReadFile(path.to_owned(), e))?;
-
-    self::parse_nix_config_string(contents, Some(path))
-}
-
-/// Attempt to parse the `nix.conf` out of the provided [`String`]. The `origin`
-/// parameter is [`Option`]al, and only influences potential error messages.
-///
-/// ```rust
-/// # use std::error::Error;
-/// #
-/// # fn main() -> Result<(), Box<dyn Error>> {
-/// let nix_conf_string = String::from("experimental-features = flakes nix-command");
-/// let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)?;
-///
-/// assert_eq!(
-///     nix_conf.settings().get(&"experimental-features".into()).unwrap(),
-///     &"flakes nix-command".into()
-/// );
-/// # Ok(())
-/// # }
-/// ```
-// Mostly a carbon copy of AbstractConfig::applyConfig from Nix:
-// https://github.com/NixOS/nix/blob/0079d2943702a7a7fbdd88c0f9a5ad677c334aa8/src/libutil/config.cc#L80
-// Some things were adjusted to be more idiomatic, as well as to account for the lack of
-// `try { ... } catch (SpecificErrorType &) { }`
-pub fn parse_nix_config_string(
-    contents: String,
-    origin: Option<&Path>,
-) -> Result<NixConfig, ParseError> {
-    let mut settings = NixConfig::new();
-
-    for line in contents.lines() {
-        let mut line = line;
-
-        // skip comments
-        if let Some(pos) = line.find('#') {
-            line = &line[..pos];
-        }
-
-        if line.is_empty() {
-            continue;
-        }
-
-        let tokens = line.split(&[' ', '\t', '\n', '\r']).collect::<Vec<_>>();
-
-        if tokens.is_empty() {
-            continue;
-        }
-
-        if tokens.len() < 2 {
-            return Err(ParseError::IllegalConfiguration(
-                line.to_owned(),
-                origin.map(ToOwned::to_owned),
-            ));
-        }
-
-        let mut include = false;
-        let mut ignore_missing = false;
-        if tokens[0] == "include" {
-            include = true;
-        } else if tokens[0] == "!include" {
-            include = true;
-            ignore_missing = true;
-        }
-
-        if include {
-            if tokens.len() != 2 {
-                return Err(ParseError::IllegalConfiguration(
-                    line.to_owned(),
-                    origin.map(ToOwned::to_owned),
-                ));
-            }
-
-            let include_path = PathBuf::from(tokens[1]);
-            match self::parse_nix_config_file(&include_path) {
-                Ok(conf) => settings.settings_mut().extend(conf.into_settings()),
-                Err(_) if ignore_missing => {}
-                Err(_) if !ignore_missing => {
-                    return Err(ParseError::IncludedFileNotFound(
-                        include_path,
-                        origin.map(ToOwned::to_owned),
-                    ));
-                }
-                _ => unreachable!(),
-            }
-
-            continue;
-        }
-
-        if tokens[1] != "=" {
-            return Err(ParseError::IllegalConfiguration(
-                line.to_owned(),
-                origin.map(ToOwned::to_owned),
-            ));
-        }
-
-        let name = tokens[0];
-        let value = tokens[2..].join(" ");
-        settings.settings_mut().insert(name.into(), value.into());
-    }
-
-    Ok(settings)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn parses_config_from_string() {
-        let res = parse_nix_config_string(
+        let res = NixConfig::parse_string(
             "cores = 4242\nexperimental-features = flakes nix-command".into(),
             None,
         );
@@ -271,7 +268,7 @@ mod tests {
         )
         .unwrap();
 
-        let res = parse_nix_config_file(&test_file);
+        let res = NixConfig::parse_file(&test_file);
 
         assert!(res.is_ok());
 
@@ -289,7 +286,7 @@ mod tests {
         let temp_dir = tempfile::TempDir::new().unwrap();
         let test_file = temp_dir.path().join("does-not-exist");
 
-        match parse_nix_config_string("bad config".into(), None) {
+        match NixConfig::parse_string("bad config".into(), None) {
             Err(ParseError::IllegalConfiguration(_, _)) => (),
             _ => assert!(
                 false,
@@ -297,7 +294,7 @@ mod tests {
             ),
         }
 
-        match parse_nix_config_file(&test_file) {
+        match NixConfig::parse_file(&test_file) {
             Err(ParseError::FileNotFound(path)) => assert_eq!(path, test_file),
             _ => assert!(
                 false,
@@ -305,7 +302,7 @@ mod tests {
             ),
         }
 
-        match parse_nix_config_string(format!("include {}", test_file.display()), None) {
+        match NixConfig::parse_string(format!("include {}", test_file.display()), None) {
             Err(ParseError::IncludedFileNotFound(path, _)) => assert_eq!(path, test_file),
             _ => assert!(
                 false,
@@ -313,7 +310,7 @@ mod tests {
             ),
         }
 
-        match parse_nix_config_file(temp_dir.path()) {
+        match NixConfig::parse_file(temp_dir.path()) {
             Err(ParseError::FailedToReadFile(path, _)) => assert_eq!(path, temp_dir.path()),
             _ => assert!(
                 false,
