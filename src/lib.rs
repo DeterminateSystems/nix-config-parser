@@ -110,7 +110,7 @@ impl NixConfig {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn parse_file(path: &Path) -> Result<NixConfig, ParseError> {
+    pub fn parse_file(path: &Path) -> Result<Self, ParseError> {
         if !path.exists() {
             return Err(ParseError::FileNotFound(path.to_owned()));
         }
@@ -142,7 +142,7 @@ impl NixConfig {
     // https://github.com/NixOS/nix/blob/0079d2943702a7a7fbdd88c0f9a5ad677c334aa8/src/libutil/config.cc#L80
     // Some things were adjusted to be more idiomatic, as well as to account for the lack of
     // `try { ... } catch (SpecificErrorType &) { }`
-    pub fn parse_string(contents: String, origin: Option<&Path>) -> Result<NixConfig, ParseError> {
+    pub fn parse_string(contents: String, origin: Option<&Path>) -> Result<Self, ParseError> {
         let mut settings = NixConfig::new();
 
         for line in contents.lines() {
