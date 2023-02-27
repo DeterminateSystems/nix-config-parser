@@ -161,7 +161,7 @@ impl NixConfig {
 
             let name = tokens[0];
             let value = tokens[2..].join(" ");
-            settings.settings_mut().insert(name.into(), value.into());
+            settings.settings_mut().insert(name.into(), value);
         }
 
         Ok(settings)
