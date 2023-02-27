@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
        b"experimental-features = flakes nix-command\nwarn-dirty = false\n",
     )?;
 
-    let nix_conf = nix_config_parser::parse_nix_config_file(&std::path::Path::new("nix.conf"))?;
+    let nix_conf = nix_config_parser::NixConfig::parse_file(&std::path::Path::new("nix.conf"))?;
 
     assert_eq!(
        nix_conf.settings().get(&"experimental-features".into()).unwrap(),
@@ -38,7 +38,7 @@ use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let nix_conf_string = String::from("experimental-features = flakes nix-command");
-    let nix_conf = nix_config_parser::parse_nix_config_string(nix_conf_string, None)?;
+    let nix_conf = nix_config_parser::NixConfig::parse_string(nix_conf_string, None)?;
 
     assert_eq!(
         nix_conf.settings().get(&"experimental-features".into()).unwrap(),
