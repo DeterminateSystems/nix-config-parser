@@ -13,7 +13,6 @@ use thiserror::Error;
 /// a list of values, the value will be space delimited.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NixConfig {
     settings: HashMap<String, String>,
 }
