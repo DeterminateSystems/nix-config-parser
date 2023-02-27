@@ -20,10 +20,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let nix_conf = nix_config_parser::NixConfig::parse_file(&std::path::Path::new("nix.conf"))?;
 
     assert_eq!(
-       nix_conf.settings().get(&"experimental-features".into()).unwrap(),
-       &"flakes nix-command".into()
+       nix_conf.settings().get("experimental-features").unwrap(),
+       "flakes nix-command"
     );
-    assert_eq!(nix_conf.settings().get(&"warn-dirty".into()).unwrap(), &"false".into());
+    assert_eq!(nix_conf.settings().get("warn-dirty").unwrap(), "false");
 
     std::fs::remove_file("nix.conf")?;
 
@@ -41,8 +41,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let nix_conf = nix_config_parser::NixConfig::parse_string(nix_conf_string, None)?;
 
     assert_eq!(
-        nix_conf.settings().get(&"experimental-features".into()).unwrap(),
-        &"flakes nix-command".into()
+        nix_conf.settings().get("experimental-features").unwrap(),
+        "flakes nix-command"
     );
 
     Ok(())
