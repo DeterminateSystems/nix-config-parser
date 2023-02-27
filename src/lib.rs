@@ -8,52 +8,6 @@ use std::{
 
 use thiserror::Error;
 
-/// A newtype wrapper around a [`String`] that represents a `nix.conf` setting
-/// key.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct NixConfigKey(pub String);
-
-impl std::fmt::Display for NixConfigKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl From<&str> for NixConfigKey {
-    fn from(value: &str) -> Self {
-        Self(value.to_string())
-    }
-}
-impl From<String> for NixConfigKey {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-/// A newtype wrapper around a [`String`] that represents a `nix.conf` setting
-/// value.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct NixConfigValue(pub String);
-
-impl std::fmt::Display for NixConfigValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl From<&str> for NixConfigValue {
-    fn from(value: &str) -> Self {
-        Self(value.to_string())
-    }
-}
-impl From<String> for NixConfigValue {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
 /// A newtype wrapper around a [`HashMap`], where the key is the name of the Nix
 /// setting, and the value is the value of that setting. If the setting accepts
 /// a list of values, the value will be space delimited.
@@ -61,7 +15,7 @@ impl From<String> for NixConfigValue {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct NixConfig {
-    settings: HashMap<NixConfigKey, NixConfigValue>,
+    settings: HashMap<String, String>,
 }
 
 impl NixConfig {
@@ -71,19 +25,15 @@ impl NixConfig {
         }
     }
 
-    pub fn settings(&self) -> &HashMap<NixConfigKey, NixConfigValue> {
+    pub fn settings(&self) -> &HashMap<String, String> {
         &self.settings
     }
 
-    pub fn settings_mut(&mut self) -> &mut HashMap<NixConfigKey, NixConfigValue> {
+    pub fn settings_mut(&mut self) -> &mut HashMap<String, String> {
         &mut self.settings
     }
 
-    pub fn to_settings(&self) -> HashMap<NixConfigKey, NixConfigValue> {
-        self.settings.clone()
-    }
-
-    pub fn into_settings(self) -> HashMap<NixConfigKey, NixConfigValue> {
+    pub fn into_settings(self) -> HashMap<String, String> {
         self.settings
     }
 
@@ -101,10 +51,10 @@ impl NixConfig {
     /// let nix_conf = nix_config_parser::NixConfig::parse_file(&std::path::Path::new("nix.conf"))?;
     ///
     /// assert_eq!(
-    ///     nix_conf.settings().get(&"experimental-features".into()).unwrap(),
-    ///     &"flakes nix-command".into()
+    ///     nix_conf.settings().get("experimental-features").unwrap(),
+    ///     "flakes nix-command"
     /// );
-    /// assert_eq!(nix_conf.settings().get(&"warn-dirty".into()).unwrap(), &"false".into());
+    /// assert_eq!(nix_conf.settings().get("warn-dirty").unwrap(), "false");
     ///
     /// std::fs::remove_file("nix.conf")?;
     /// # Ok(())
@@ -132,8 +82,8 @@ impl NixConfig {
     /// let nix_conf = nix_config_parser::NixConfig::parse_string(nix_conf_string, None)?;
     ///
     /// assert_eq!(
-    ///     nix_conf.settings().get(&"experimental-features".into()).unwrap(),
-    ///     &"flakes nix-command".into()
+    ///     nix_conf.settings().get("experimental-features").unwrap(),
+    ///     "flakes nix-command"
     /// );
     /// # Ok(())
     /// # }
@@ -248,9 +198,9 @@ mod tests {
 
         let map = res.unwrap();
 
-        assert_eq!(map.to_settings().get(&"cores".into()), Some(&"4242".into()));
+        assert_eq!(map.settings().get("cores"), Some(&"4242".into()));
         assert_eq!(
-            map.settings().get(&"experimental-features".into()),
+            map.settings().get("experimental-features"),
             Some(&"flakes nix-command".into())
         );
     }
@@ -274,9 +224,9 @@ mod tests {
 
         let map = res.unwrap();
 
-        assert_eq!(map.settings().get(&"cores".into()), Some(&"4242".into()));
+        assert_eq!(map.settings().get("cores"), Some(&"4242".into()));
         assert_eq!(
-            map.settings().get(&"experimental-features".into()),
+            map.settings().get("experimental-features"),
             Some(&"flakes nix-command".into())
         );
     }
