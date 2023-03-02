@@ -102,6 +102,8 @@ impl NixConfig {
                 line = &line[..pos];
             }
 
+            line = line.trim();
+
             if line.is_empty() {
                 continue;
             }
@@ -188,8 +190,9 @@ mod tests {
 
     #[test]
     fn parses_config_from_string() {
+        // Leading space of ` cores = 4242` is intentional and exercises an edge case.
         let res = NixConfig::parse_string(
-            "cores = 4242\nexperimental-features = flakes nix-command".into(),
+            " cores = 4242\nexperimental-features = flakes nix-command\n # some comment\n# another comment\n#anotha one".into(),
             None,
         );
 
