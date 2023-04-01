@@ -12,7 +12,7 @@ documentation = "https://docs.rs/nix-config-parser/latest/nix_config_parser"
 serde = ["dep:serde"]
 
 [dependencies]
-serde = { version = "1.0.152", features = ["derive"], optional = true }
+serde = { version = "1.0.159", features = ["derive"], optional = true }
 thiserror = "1.0.38"
 
 [dev-dependencies]
