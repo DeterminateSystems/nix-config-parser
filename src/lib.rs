@@ -108,7 +108,8 @@ impl NixConfig {
                 continue;
             }
 
-            let tokens = line.split(&[' ', '\t', '\n', '\r']).collect::<Vec<_>>();
+            let mut tokens = line.split(&[' ', '\t', '\n', '\r']).collect::<Vec<_>>();
+            tokens.retain(|t| !t.is_empty());
 
             if tokens.is_empty() {
                 continue;
@@ -269,5 +270,22 @@ mod tests {
                 "trying to read a dir to a string should have returned ParseError::FailedToReadFile"
             ),
         }
+    }
+
+    #[test]
+    fn handles_consecutive_whitespace() {
+        let res = NixConfig::parse_string(
+            "substituters        = https://hydra.iohk.io https://iohk.cachix.org https://cache.nixos.org/".into(),
+            None,
+        );
+
+        assert!(res.is_ok());
+
+        let map = res.unwrap();
+
+        assert_eq!(
+            map.settings().get("substituters"),
+            Some(&"https://hydra.iohk.io https://iohk.cachix.org https://cache.nixos.org/".into())
+        );
     }
 }
