@@ -1,11 +1,8 @@
 //! # nix-config-parser
 //!
 //! A simple parser for the Nix configuration file format.
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
-
+use indexmap::IndexMap;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 /// A newtype wrapper around a [`HashMap`], where the key is the name of the Nix
@@ -14,25 +11,25 @@ use thiserror::Error;
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NixConfig {
-    settings: HashMap<String, String>,
+    settings: IndexMap<String, String>,
 }
 
 impl NixConfig {
     pub fn new() -> Self {
         Self {
-            settings: HashMap::new(),
+            settings: IndexMap::new(),
         }
     }
 
-    pub fn settings(&self) -> &HashMap<String, String> {
+    pub fn settings(&self) -> &IndexMap<String, String> {
         &self.settings
     }
 
-    pub fn settings_mut(&mut self) -> &mut HashMap<String, String> {
+    pub fn settings_mut(&mut self) -> &mut IndexMap<String, String> {
         &mut self.settings
     }
 
-    pub fn into_settings(self) -> HashMap<String, String> {
+    pub fn into_settings(self) -> IndexMap<String, String> {
         self.settings
     }
 
@@ -287,5 +284,41 @@ mod tests {
             map.settings().get("substituters"),
             Some(&"https://hydra.iohk.io https://iohk.cachix.org https://cache.nixos.org/".into())
         );
+    }
+
+    #[test]
+    fn returns_the_same_order() {
+        let res = NixConfig::parse_string(
+            r#"
+                cores = 32
+                experimental-features = flakes nix-command
+                max-jobs = 16
+            "#
+            .into(),
+            None,
+        );
+
+        assert!(res.is_ok());
+
+        let map = res.unwrap();
+
+        // Ensure it's not just luck that it's the same order...
+        for _ in 0..10 {
+            let settings = map.settings();
+
+            let mut settings_order = settings.into_iter();
+            assert_eq!(settings_order.next(), Some((&"cores".into(), &"32".into())),);
+            assert_eq!(
+                settings_order.next(),
+                Some((
+                    &"experimental-features".into(),
+                    &"flakes nix-command".into()
+                )),
+            );
+            assert_eq!(
+                settings_order.next(),
+                Some((&"max-jobs".into(), &"16".into())),
+            );
+        }
     }
 }

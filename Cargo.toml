@@ -9,9 +9,10 @@ repository = "https://github.com/DeterminateSystems/nix-config-parser"
 documentation = "https://docs.rs/nix-config-parser/latest/nix_config_parser"
 
 [features]
-serde = ["dep:serde"]
+serde = ["dep:serde", "indexmap/serde"]
 
 [dependencies]
+indexmap = "2.0.1"
 serde = { version = "1.0.152", features = ["derive"], optional = true }
 thiserror = "1.0.38"
 
