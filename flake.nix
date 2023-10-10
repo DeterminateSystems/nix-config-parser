@@ -2,10 +2,10 @@
   description = "nix-config-parser";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
+    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.2211.433406.tar.gz";
 
     fenix = {
-      url = "github:nix-community/fenix";
+      url = "https://flakehub.com/f/nix-community/fenix/0.1.1618.tar.gz";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -15,7 +15,7 @@
     };
 
     nix = {
-      url = "github:nixos/nix/2.13.2";
+      url = "https://flakehub.com/f/NixOS/nix/2.18.1.tar.gz";
       # Omitting `inputs.nixpkgs.follows = "nixpkgs";` on purpose
     };
 
