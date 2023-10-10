@@ -8,16 +8,31 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1677479131,
-        "narHash": "sha256-VbGbhicjoVlhZDVFJWAMGKGsk04TG1pEdKDVvqUduO4=",
-        "owner": "nix-community",
-        "repo": "fenix",
-        "rev": "ec19c2683ebf38e93b29dd23acf119e81ae0a14f",
+        "lastModified": 1696141234,
+        "narHash": "sha256-0dZpggYjjmWEk+rGixiBHOHuQfLzEzNfrtjSig04s6Q=",
+        "rev": "9ccae1754eec0341b640d5705302ac0923d22875",
+        "revCount": 1618,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/nix-community/fenix/0.1.1618%2Brev-9ccae1754eec0341b640d5705302ac0923d22875/018aea4c-03c9-7734-95d5-b84cc8881e3d/source.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://flakehub.com/f/nix-community/fenix/0.1.1618.tar.gz"
+      }
+    },
+    "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1696426674,
+        "narHash": "sha256-kvjfFW7WAETZlt09AgDn1MrtKzP7t90Vf7vypd3OL1U=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "0f9255e01c2351cc7d116c072cb317785dd33b33",
         "type": "github"
       },
       "original": {
-        "owner": "nix-community",
-        "repo": "fenix",
+        "owner": "edolstra",
+        "repo": "flake-compat",
         "type": "github"
       }
     },
@@ -59,37 +74,36 @@
     },
     "nix": {
       "inputs": {
+        "flake-compat": "flake-compat",
         "lowdown-src": "lowdown-src",
         "nixpkgs": "nixpkgs",
         "nixpkgs-regression": "nixpkgs-regression"
       },
       "locked": {
-        "lastModified": 1674678482,
-        "narHash": "sha256-MtVatZVsV+dtjdD4AC4bztrnDFas+WZYHzQMt41FwzU=",
-        "owner": "nixos",
-        "repo": "nix",
-        "rev": "435a16b5556f4171b4204a3f65c9dedf215f168c",
-        "type": "github"
+        "lastModified": 1696259154,
+        "narHash": "sha256-WNmifcTsN9aG1ONkv+l2BC4sHZZxtNKy0keqBHXXQ7w=",
+        "rev": "f5f4de6a550327b4b1a06123c2e450f1b92c73b6",
+        "revCount": 14900,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/NixOS/nix/2.18.1/018af406-b173-7112-9c1c-82f5b645e9d3/source.tar.gz"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "2.13.2",
-        "repo": "nix",
-        "type": "github"
+        "type": "tarball",
+        "url": "https://flakehub.com/f/NixOS/nix/2.18.1.tar.gz"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1670461440,
-        "narHash": "sha256-jy1LB8HOMKGJEGXgzFRLDU1CBGL0/LlkolgnqIsF0D8=",
+        "lastModified": 1696874073,
+        "narHash": "sha256-HNcQddEVmBVbMeH0I4LUEKFyZNvGfIYeXvyMYBvXjZ0=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "04a75b2eecc0acf6239acf9dd04485ff8d14f425",
+        "rev": "22723a1d7deab53e5c1022906089e4247a5d3e77",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-22.11-small",
+        "ref": "nixos-23.05-small",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -112,18 +126,16 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1677447818,
-        "narHash": "sha256-dgXEUbz2hgaJL4xCD/5JLhA36UJOhP4qn7Cp6UZhB0I=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "8bd260eb578e3fea6bce158b24c93ab158d031e7",
-        "type": "github"
+        "lastModified": 1,
+        "narHash": "sha256-R/glsgjybw9RkBhTdwOaYQ2idpYePWy/v6KJt8t8iJU=",
+        "rev": "ea4c80b39be4c09702b0cb3b42eab59e2ba4f24b",
+        "revCount": 433406,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/NixOS/nixpkgs/0.2211.433406%2Brev-ea4c80b39be4c09702b0cb3b42eab59e2ba4f24b/0189fafc-845c-7413-9955-bd16e2eb8844/source.tar.gz"
       },
       "original": {
-        "owner": "nixos",
-        "ref": "nixos-22.11",
-        "repo": "nixpkgs",
-        "type": "github"
+        "type": "tarball",
+        "url": "https://flakehub.com/f/NixOS/nixpkgs/0.2211.433406.tar.gz"
       }
     },
     "root": {
