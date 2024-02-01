@@ -17,7 +17,7 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Cache lint store
         id: lint-store
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.ci-store
           key: lint-store-${{ hashFiles('**/Cargo.lock', '**/flake.lock') }}-v1
