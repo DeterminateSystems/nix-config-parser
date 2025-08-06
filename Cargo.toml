@@ -13,7 +13,7 @@ serde = ["dep:serde", "indexmap/serde"]
 
 [dependencies]
 indexmap = "2"
-serde = { version = "1.0.152", features = ["derive"], optional = true }
+serde = { version = "1.0.219", features = ["derive"], optional = true }
 thiserror = "1.0.61"
 
 [dev-dependencies]
