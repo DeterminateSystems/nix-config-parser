@@ -9,23 +9,24 @@ jobs:
   lints:
     name: Lints
     runs-on: ubuntu-22.04
+    permissions:
+      id-token: "write"
+      contents: "read"
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
       - name: Enable magic Nix cache
         uses: DeterminateSystems/magic-nix-cache-action@main
-      - name: Cache lint store
-        id: lint-store
-        uses: actions/cache@v4
-        with:
-          path: ~/.ci-store
-          key: lint-store-${{ hashFiles('**/Cargo.lock', '**/flake.lock') }}-v1
       - name: Check rustfmt
-        run: nix develop --store ~/.ci-store --command cargo fmt --check
+        if: success() || failure()
+        run: nix develop --command cargo fmt --check
       - name: Check nixpkgs-fmt formatting
-        run: nix develop --store ~/.ci-store --command nixpkgs-fmt --check .
+        if: success() || failure()
+        run: nix develop --command nixpkgs-fmt --check .
       - name: Check build
-        run: nix develop --store ~/.ci-store --command cargo build
+        if: success() || failure()
+        run: nix develop --command cargo build
       - name: Check tests
-        run: nix develop --store ~/.ci-store --command cargo test
+        if: success() || failure()
+        run: nix develop --command cargo test
